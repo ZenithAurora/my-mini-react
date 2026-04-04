@@ -1,4 +1,4 @@
-import Scheduler from './scheduler'
+import Scheduler from '../scheduler'
 
 
 function render(element, container) {
