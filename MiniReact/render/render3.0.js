@@ -5,9 +5,11 @@ import createDOM from '../createDom'
 let nextUnitOfWork = null
 
 // 发出第一个fiber
+// 调试用：控制台输入 printFiberTree() 即可查看完整 fiber 树（原生对象，可逐层展开）
 function render(element, container) {
     // 这个就是root的fiber
-    nextUnitOfWork = {
+    nextUnitOfWork = window.__rootFiber__ = {
+        fiberName: 'root fiber', // 自己随便写的，方便在浏览器控制台调试的时候知道这是哪个fiber节点
         dom: container,
         props: {
             children: [element]
@@ -60,6 +62,7 @@ function performUnitOfWork(fiber) {
     // 构建fiber之间的关系
     for (let childrenElement of elements) {
         const newFiber = {
+            fiberName: `${childrenElement.type} fiber`, // 自己随便写的，方便在浏览器控制台调试的时候知道这是哪个fiber节点
             type: childrenElement.type,
             props: childrenElement.props,
             parent: fiber, // 新造出来的这个fiber直接连到父亲身上
@@ -109,6 +112,9 @@ function workLoop(deadLine) {
 
 // 第一次请求
 requestIdleCallback(workLoop)
+
+// 调试用：控制台手动调用 printFiberTree() 查看完整 fiber 树
+window.printFiberTree = () => console.log(window.__rootFiber__)
 
 
 export default render;
