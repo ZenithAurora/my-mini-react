@@ -1,4 +1,4 @@
-import createDOM from '../createDom'
+import createDOM from './createDOM';
 
 
 // 下一个要执行的任务（fiber）
@@ -85,7 +85,9 @@ function performUnitOfWork(fiber) {
 
 
     // ==================== 3. 返回下一个工作单元（fiber） =====================
-    if (fiber.child) return fiber.child
+    if (fiber.child) {
+        return fiber.child
+    }
     let nextFiber = fiber
     while (nextFiber) {
         if (nextFiber.sibling) return nextFiber.sibling

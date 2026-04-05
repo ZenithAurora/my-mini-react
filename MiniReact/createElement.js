@@ -1,7 +1,13 @@
-// 纯文字节点
+/**
+ * Element元素分为纯文本和对象，因此需要两个函数来处理
+ *  - 1：createTextElement
+ *  - 2：createElement
+ */
+
+// （1）创建纯文本元素
 function createTextElement(text) {
     return {
-        type: 'TEXT_ELEMENT',
+        type: 'TEXT_ELEMENT',  // 写死
         props: {
             nodeValue: text,
             children: []
@@ -9,8 +15,7 @@ function createTextElement(text) {
     }
 }
 
-
-
+// （2）创建普通元素
 function createElement(type, props, ...children) {
     return {
         type,
@@ -25,6 +30,5 @@ function createElement(type, props, ...children) {
     }
 }
 
-
-
+export { createTextElement, createElement };
 export default createElement;
