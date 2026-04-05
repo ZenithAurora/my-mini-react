@@ -3,12 +3,14 @@ import createDOM from './createDOM';
 
 // 下一个要执行的任务（fiber）
 let nextUnitOfWork = null
+// 工作中的根节点
+let workInProgressRoot = null
 
 // 发出第一个fiber
 // 调试用：控制台输入 printFiberTree() 即可查看完整 fiber 树（原生对象，可逐层展开）
 function render(element, container) {
     // 这个就是root的fiber
-    nextUnitOfWork = window.__rootFiber__ = {
+    workInProgressRoot = {
         fiberName: 'root fiber', // 自己随便写的，方便在浏览器控制台调试的时候知道这是哪个fiber节点
         dom: container,
         props: {
@@ -17,6 +19,8 @@ function render(element, container) {
         sibling: null,
         parent: null
     }
+
+    nextUnitOfWork = workInProgressRoot
 }
 
 /**
@@ -97,6 +101,28 @@ function performUnitOfWork(fiber) {
     return undefined;
 }
 
+// -----------------------（同步）提交阶段----------------------
+
+// 提交根Fiber
+function commitRoot() {
+    const now = performance.now()
+    commitWork(workInProgressRoot.child)
+    workInProgressRoot = null // 清空   
+    console.log(`commit阶段耗时：${performance.now() - now}ms`);
+}
+
+// 从 fiber 开始提交
+function commitWork(fiber) {
+    if (!fiber) return;
+
+    const parentDOM = fiber.parent.dom
+    parentDOM.appendChild(fiber.dom)
+    // 递归 child 和 sibling
+    commitWork(fiber.child)
+    commitWork(fiber.sibling)
+}
+// --------------------------------------------------------------
+
 
 // 工作循环
 // 这个deadLine是requestIdleCallback给的
@@ -108,15 +134,21 @@ function workLoop(deadLine) {
         // 检查是否需要交出主线程
         shouldYield = deadLine.timeRemaining() < 1
     }
+
     // 告诉浏览器，下一次你空闲了请继续执行我的工作循环
     requestIdleCallback(workLoop)
+
+    if (!nextUnitOfWork && workInProgressRoot) {
+        commitRoot()
+    }
 }
 
 // 第一次请求
 requestIdleCallback(workLoop)
 
-// 调试用：控制台手动调用 printFiberTree() 查看完整 fiber 树
-window.printFiberTree = () => console.log(window.__rootFiber__)
+
+
+
 
 
 export default render;
