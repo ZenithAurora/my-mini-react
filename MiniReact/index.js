@@ -1,9 +1,10 @@
-import createElement from "./createElement";
+import { createElement, createTextElement } from "./createElement";
 import render from "./render/render3.0";
 import createDom from "./createDom";
 
 
 const MiniReact = {
+    createTextElement,
     createElement,
     createDom,
     render,
@@ -11,5 +12,5 @@ const MiniReact = {
 
 
 
-export { createElement, render, createDom };
+export { createElement, render, createDom, createTextElement };
 export default MiniReact;

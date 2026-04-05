@@ -3,7 +3,7 @@ import MiniReact from "./MiniReact";
 const element = MiniReact.createElement(
     'h1',
     { id: 'title', style: "background:red" },
-    'Hello World',
+    MiniReact.createTextElement('Hello World'),
     MiniReact.createElement('div', { id: 'name', style: "background:blue;" }, '—MiniReact')
 )
 
