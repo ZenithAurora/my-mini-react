@@ -46,7 +46,12 @@ function commitRoot() {
 function commitWork(fiber) {
     if (!fiber) return;
 
-    const parentDOM = fiber.parent.dom
+    // 函数式组件的fiber没有dom节点，需要一直往上找直到找到带有dom的fiber
+    let domParentFiber = fiber.parent;
+    while (!domParentFiber.dom) {
+        domParentFiber = domParentFiber.parent;
+    }
+    const parentDOM = domParentFiber.dom;
 
     // -------------------根据effectTag做不同的DOM操作-------------------
     // （1）如果是替换，则替换老的DOM节点
@@ -57,7 +62,7 @@ function commitWork(fiber) {
     }
     // （2）如果是删除，则从DOM中删除
     else if (fiber.effectTag === 'DELETION' && fiber.dom) {
-        parentDOM.removeChild(fiber.dom)
+        commitDeletion(fiber, parentDOM);    // 👈删除的是dom，针对函数组件没有dom，需要单独处理
     }
     // （3）如果是更新，则单独处理
     else if (fiber.effectTag === 'UPDATE' && fiber.dom) {
@@ -68,6 +73,15 @@ function commitWork(fiber) {
     // 递归 child 和 sibling
     commitWork(fiber.child)
     commitWork(fiber.sibling)
+}
+
+function commitDeletion(fiber, parentDOM) {
+    // 如果是函数组件fiber没有dom，需要一直往上找直到找到带有dom的fiber
+    if (fiber.dom) {
+        parentDOM.removeChild(fiber.dom)
+    } else {
+        commitDeletion(fiber.child, parentDOM)
+    }
 }
 // --------------------------------------------------------------
 
@@ -196,18 +210,20 @@ function reconcileChildren(wipFiber, elements) {
  * 3. select the next unit of work
  */
 function performUnitOfWork(fiber) {
-    // ==================== 1.创建DOM并记录到当前fiber节点中 ====================
-    if (!fiber.dom) {
-        fiber.dom = createDOM(fiber)
-    }
-    // 追加到父节点
-    // if (fiber.parent) fiber.parent.dom.appendChild(fiber.dom)
+    /**
+     * 1.创建DOM并记录到当前fiber节点中
+     * 2.创建子级Fiber以及建立关系
+     */
 
-    // ==================== 2.创建子级Fiber以及建立关系 ====================
-    const elements = fiber.props.children
-    reconcileChildren(fiber, elements)
+    // 这里针对引入函数时组件做差异化处理：
+    const isFunctionComponent = fiber.type instanceof Function   // 是否是函数组件
+    // ①：函数组件 
+    if (isFunctionComponent) updateFunctionComponent(fiber)
+    // ②：普通的元素节点
+    else updateHostComponent(fiber)
 
-    // ==================== 3. 返回下一个工作单元（fiber） =====================
+
+    // ======== 3. 返回下一个工作单元（fiber） =========
     if (fiber.child) {
         return fiber.child
     }
@@ -218,6 +234,28 @@ function performUnitOfWork(fiber) {
     }
     // 如果循环结束都还是没有找到下一个工作单元，那么就会直接返回undefined，那么workLoop就会停止
     return undefined;
+}
+
+
+// (1) updateHostComponent 这个只需要沿用之前的代码就行
+function updateHostComponent(fiber) {
+    /**
+     * 处理非函数式组件：
+     * 1.创建DOM并记录到当前fiber节点中
+     * 2.创建子级Fiber以及建立关系
+     */
+    if (!fiber.dom) fiber.dom = createDOM(fiber)
+    const elements = fiber.props.children
+    reconcileChildren(fiber, elements)
+}
+
+
+// (2) updateFunctionComponent 这个得对 函数组件单独处理
+function updateFunctionComponent(fiber) {
+    // 拿到函数本身，运行函数，并传入函数的props（挂载到fiber上的）
+    const functionComponent = fiber.type
+    const children = [functionComponent(fiber.props)]
+    reconcileChildren(fiber, children)
 }
 // ---------------------------------------------------------------------
 
