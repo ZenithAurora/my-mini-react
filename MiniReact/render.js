@@ -9,6 +9,10 @@ let workInProgressRoot = null
 let currentRoot = null
 // 记录要删除的fiber节点
 let deletion = []
+// 当前正在工作的函数组件 Fiber
+let wipFiber = null;
+// 当前 hook 在 hooks 数组中的索引
+let hookIndex = null;
 // ------------------------------------------------------------------
 
 
@@ -252,6 +256,11 @@ function updateHostComponent(fiber) {
 
 // (2) updateFunctionComponent 这个得对 函数组件单独处理
 function updateFunctionComponent(fiber) {
+    wipFiber = fiber    // 当前正在处理的函数组件fiber
+    hookIndex = 0
+    wipFiber.hooks = []
+
+
     // 拿到函数本身，运行函数，并传入函数的props（挂载到fiber上的）
     const functionComponent = fiber.type
     const children = [functionComponent(fiber.props)]
@@ -284,5 +293,50 @@ requestIdleCallback(workLoop)
 // ---------------------------------------------------------------
 
 
+// -------------------------（8）hooks----------------------------
+export function useState(initialState) {
+    //  1. 尝试从旧的 Fiber（alternate）中获取同位置的 hook
+    const oldHook = wipFiber.alternate?.hooks?.[hookIndex];
+
+    // 2. 创建新的 hook 对象
+    const hook = {
+        state: oldHook ? oldHook.state : initialState,
+        queue: []
+    };
+
+    // 3. 如果有待执行的更新，就依次应用到 state 上
+    const actions = oldHook ? oldHook.queue : []
+    console.log('看看当前fiber：', wipFiber, '\n看看老fiber：', wipFiber.alternate);
+
+    actions.forEach(action => {
+        // 如果 action 是函数，就调用它并传入旧状态；否则直接使用 action 作为新值
+        if (typeof action === 'function') {
+            hook.state = action(hook.state);
+        } else {
+            hook.state = action;
+        }
+    });
+
+    // 4. 创建setState函数
+    const setState = (action) => {
+        // 将action存入到 hook的queue中
+        hook.queue.push(action);
+        // 跟render类似，触发重新渲染
+        workInProgressRoot = {
+            dom: currentRoot.dom,
+            props: currentRoot.props,
+            alternate: currentRoot,
+        }
+        nextUnitOfWork = workInProgressRoot;
+        deletion = []
+    }
+
+    // 5. 存入当前 Fiber 的 hooks 数组
+    wipFiber.hooks.push(hook);
+    hookIndex++;
+
+    // 6. 返回状态（暂时没有 setState）
+    return [hook.state, setState];
+}
 
 export default render;
