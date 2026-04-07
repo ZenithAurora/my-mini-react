@@ -306,8 +306,6 @@ export function useState(initialState) {
 
     // 3. 如果有待执行的更新，就依次应用到 state 上
     const actions = oldHook ? oldHook.queue : []
-    console.log('看看当前fiber：', wipFiber, '\n看看老fiber：', wipFiber.alternate);
-
     actions.forEach(action => {
         // 如果 action 是函数，就调用它并传入旧状态；否则直接使用 action 作为新值
         if (typeof action === 'function') {
